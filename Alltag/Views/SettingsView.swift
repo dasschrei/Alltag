@@ -2,6 +2,8 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @State private var voiceOn = VoiceService.enabled
+    @State private var voiceID = VoiceService.currentVoice?.identifier ?? ""
     @State private var homeSaved = Places.home != nil
     @State private var savingHome = false
 
@@ -10,6 +12,28 @@ struct SettingsView: View {
             Form {
                 Section("Sprachassistent") {
                     Label(LocalBrain.availabilityText, systemImage: "apple.intelligence")
+                }
+                Section {
+                    Toggle("Antworten vorlesen", isOn: $voiceOn)
+                        .onChange(of: voiceOn) { _, v in VoiceService.enabled = v }
+                    if voiceOn {
+                        Picker("Stimme", selection: $voiceID) {
+                            ForEach(VoiceService.germanVoices, id: \.identifier) { v in
+                                Text(VoiceService.label(v)).tag(v.identifier)
+                            }
+                        }
+                        .onChange(of: voiceID) { _, id in
+                            VoiceService.chosenID = id
+                            VoiceService.speak("Hallo Jakob, so klinge ich jetzt.")
+                        }
+                        Button("Probe hören") { VoiceService.speak("Notiert. Morgen um zehn beim Steuerberater.") }
+                    }
+                } header: {
+                    Text("Stimme")
+                } footer: {
+                    Text(VoiceService.hasNaturalVoice
+                         ? "Premium-Stimmen klingen am natürlichsten."
+                         : "Für eine natürliche Stimme: iPhone-Einstellungen → Bedienungshilfen → Gesprochene Inhalte → Stimmen → Deutsch, dort eine Stimme mit „Premium“ laden (z. B. Anna oder Helena). Danach hier auswählen.")
                 }
                 Section {
                     Button {

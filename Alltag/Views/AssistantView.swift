@@ -11,7 +11,6 @@ struct AssistantView: View {
     @State private var typed = ""
     @State private var working = false
     @State private var reply: String?
-    @State private var synthesizer = AVSpeechSynthesizer()
 
     var body: some View {
         NavigationStack {
@@ -87,13 +86,8 @@ struct AssistantView: View {
             let outcome = await CommandProcessor.handle(text, source: source, in: context)
             reply = outcome.reply
             working = false
-            speak(outcome.reply)
+            VoiceService.speak(outcome.reply)
         }
     }
 
-    private func speak(_ text: String) {
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: "de-AT") ?? AVSpeechSynthesisVoice(language: "de-DE")
-        synthesizer.speak(utterance)
-    }
 }

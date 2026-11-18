@@ -7,7 +7,7 @@ import EventKit
 final class CalendarService {
     static let shared = CalendarService()
 
-    private let store = EKEventStore()
+    let store = EKEventStore()
     var authorized = false
     var revision = 0
 
@@ -30,6 +30,14 @@ final class CalendarService {
         let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
         return store.events(matching: predicate).sorted { $0.startDate < $1.startDate }
     }
+
+    func events(from start: Date, to end: Date) -> [EKEvent] {
+        guard authorized else { return [] }
+        let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
+        return store.events(matching: predicate).sorted { $0.startDate < $1.startDate }
+    }
+
+    func changed() { revision += 1 }
 
     @discardableResult
     func addEvent(title: String, start: Date, minutes: Int, notes: String? = nil) -> Bool {

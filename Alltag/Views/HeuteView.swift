@@ -7,6 +7,7 @@ struct HeuteView: View {
     @Environment(\.openURL) private var openURL
     @Query(filter: #Predicate<TaskItem> { !$0.done }, sort: \TaskItem.created) private var tasks: [TaskItem]
     @State private var showMiniStep = false
+    @State private var newTask = false
     private let calendar = CalendarService.shared
 
     var body: some View {
@@ -70,12 +71,21 @@ struct HeuteView: View {
                             .font(.footnote).foregroundStyle(.secondary)
                     }
                 }
+                NavigationLink {
+                    TaskListView()
+                } label: {
+                    Label("Alle Aufgaben", systemImage: "list.bullet")
+                        .font(.subheadline.weight(.semibold))
+                }
             }
             .padding()
             .padding(.bottom, 80)
         }
         .navigationTitle("Heute")
+        .sheet(isPresented: $newTask) { TaskEditView(task: nil) }
         .toolbar {
+            Button { newTask = true } label: { Image(systemName: "plus") }
+                .accessibilityLabel("Neue Aufgabe")
             Button { AppState.shared.showAbendCheck = true } label: { Image(systemName: "moon.stars") }
                 .accessibilityLabel("Abend-Check")
             Button { showSettings = true } label: { Image(systemName: "gearshape") }
