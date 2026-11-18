@@ -9,7 +9,8 @@ settings:
     SWIFT_VERSION: "5.0"
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
-    DEVELOPMENT_TEAM: ""
+    DEVELOPMENT_TEAM: "675RG8G4AR"
+    CODE_SIGN_STYLE: Automatic
 targets:
   Alltag:
     type: application
@@ -21,6 +22,7 @@ targets:
       properties:
         NSAlarmKitUsageDescription: "Alltag stellt deinen Wecker passend zur Losgeh-Zeit."
         UIBackgroundModes: [location]
+        ITSAppUsesNonExemptEncryption: false
     entitlements:
       path: Alltag/Alltag.entitlements
       properties:
@@ -33,6 +35,7 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Alltag
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription: "Alltag zeigt deine Termine im eigenen Kalender und trägt neue Termine ein."
