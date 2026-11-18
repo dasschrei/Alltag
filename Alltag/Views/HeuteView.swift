@@ -30,6 +30,20 @@ struct HeuteView: View {
                         }
                     }
                 }
+                let birthdays = BirthdayService.shared.upcoming.filter { $0.daysUntil <= 7 }
+                if !birthdays.isEmpty {
+                    section("Geburtstage") {
+                        ForEach(birthdays) { b in
+                            HStack {
+                                Text("🎂")
+                                Text(b.name).font(.body.weight(.medium))
+                                Spacer()
+                                Text(b.daysUntil == 0 ? "heute" : (b.daysUntil == 1 ? "morgen" : "in \(b.daysUntil) Tagen"))
+                                    .foregroundStyle(b.daysUntil == 0 ? Theme.warn : .secondary)
+                            }
+                        }
+                    }
+                }
                 section("Drei Dinge für heute") {
                     if tasks.isEmpty {
                         Text("Nichts offen. Sag einfach, was ansteht.").foregroundStyle(.secondary)

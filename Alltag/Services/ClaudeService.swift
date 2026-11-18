@@ -130,6 +130,9 @@ actor ClaudeService {
     reply: Was du Jakob vorliest. Bei reinen Notizen nur "Notiert." oder sehr kurz bestätigen, wohin es kam. \
     Bei Fragen beantworte sie kurz aus dem Kontext (höchstens 3 Sätze, Deutsch, Du-Form). \
     Erfinde keine Fakten, die nicht im Kontext stehen.
+    Beginnt das Diktat mit "Geteilte Nachricht:", hat Jakob eine empfangene Nachricht (meist WhatsApp) geteilt. \
+    Erstelle dann genau ein reply_draft: person = Absender, falls erkennbar (sonst "Unbekannt"), \
+    message = ein passender Antwortvorschlag in Jakobs Namen. Termine oder Aufgaben darin zusätzlich als event/task.
     Alle Felder müssen gesetzt sein; nicht benötigte Felder sind leere Strings, leere Listen oder 0.
     """
 

@@ -4,3 +4,5 @@ DerivedData/
 build/
 .DS_Store
 Alltag/Info.plist
+Share/Info.plist
+*.entitlements

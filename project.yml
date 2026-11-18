@@ -21,6 +21,12 @@ targets:
       properties:
         NSAlarmKitUsageDescription: "Alltag stellt deinen Wecker passend zur Losgeh-Zeit."
         UIBackgroundModes: [location]
+    entitlements:
+      path: Alltag/Alltag.entitlements
+      properties:
+        com.apple.security.application-groups: [group.at.dasschrei.alltag]
+    dependencies:
+      - target: AlltagShare
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: at.dasschrei.alltag
@@ -35,3 +41,29 @@ targets:
         INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "Alltag berechnet Fahrzeiten zu deinen Terminen."
         INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription: "Alltag startet den Abend-Check, wenn du nach Hause kommst."
         INFOPLIST_KEY_NSContactsUsageDescription: "Alltag liest Geburtstage aus deinen Kontakten."
+  AlltagShare:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Share
+      - path: Alltag/Services/SharedInbox.swift
+    info:
+      path: Share/Info.plist
+      properties:
+        CFBundleDisplayName: Alltag
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsText: true
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+    entitlements:
+      path: Share/AlltagShare.entitlements
+      properties:
+        com.apple.security.application-groups: [group.at.dasschrei.alltag]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: at.dasschrei.alltag.share
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: YES

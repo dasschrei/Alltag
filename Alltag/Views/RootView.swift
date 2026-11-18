@@ -5,6 +5,8 @@ struct RootView: View {
     @Environment(AppState.self) private var appState
     @Query(filter: #Predicate<ReplyItem> { !$0.done }) private var openReplies: [ReplyItem]
     @State private var showSettings = false
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.modelContext) private var context
 
     var body: some View {
         @Bindable var appState = appState
@@ -53,9 +55,21 @@ struct RootView: View {
         .sheet(isPresented: $showSettings) {
             SettingsView()
         }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await processShared() } }
+        }
         .task {
             await CalendarService.shared.requestAccess()
+            await BirthdayService.shared.refresh(context: context)
+            await processShared()
             if KeychainStore.get("anthropic_api_key") == nil { showSettings = true }
+        }
+    }
+
+    /// Aus WhatsApp geteilte Nachrichten: Claude macht daraus offene Antworten mit Entwurf.
+    private func processShared() async {
+        for text in SharedInbox.takeAll() {
+            _ = await CommandProcessor.handle("Geteilte Nachricht: \(text)", source: "Geteilt", incoming: text, in: context)
         }
     }
 }

@@ -10,7 +10,7 @@ enum CommandProcessor {
         var draftsToSend: [ReplyItem]
     }
 
-    static func handle(_ text: String, source: String, in context: ModelContext) async -> Outcome {
+    static func handle(_ text: String, source: String, incoming: String = "", in context: ModelContext) async -> Outcome {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return Outcome(reply: "Ich habe nichts verstanden.", draftsToSend: []) }
 
@@ -57,7 +57,7 @@ enum CommandProcessor {
                 }
             case "reply_draft":
                 let item = ReplyItem(person: action.person, channel: action.channel.isEmpty ? "WhatsApp" : action.channel,
-                                     incoming: "", draft: action.message)
+                                     incoming: incoming, draft: action.message)
                 context.insert(item)
                 drafts.append(item)
             case "new_project":
