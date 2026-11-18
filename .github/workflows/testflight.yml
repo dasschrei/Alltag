@@ -49,8 +49,24 @@ jobs:
         if: steps.check.outputs.ready == 'true'
         run: |
           mkdir -p ~/private_keys
-          printf '%s' "$ASC_KEY_P8" > ~/private_keys/AuthKey_${ASC_KEY_ID}.p8
-          echo "KEY_PATH=$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8" >> "$GITHUB_ENV"
+          # Schlüssel säubern: egal ob mit/ohne Zeilenumbrüche oder BEGIN/END-Zeilen eingefügt.
+          BODY=$(printf '%s' "$ASC_KEY_P8" | tr -d '\r' \
+            | sed -e 's/-----BEGIN PRIVATE KEY-----//' -e 's/-----END PRIVATE KEY-----//' \
+            | tr -d ' \n\t')
+          {
+            echo "-----BEGIN PRIVATE KEY-----"
+            printf '%s' "$BODY" | fold -w 64
+            echo
+            echo "-----END PRIVATE KEY-----"
+          } > ~/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          echo "Schlüssellänge (Zeichen): ${#BODY}"
+          openssl pkey -in ~/private_keys/AuthKey_${ASC_KEY_ID}.p8 -noout && echo "Schlüssel gültig" || echo "Schlüssel ungültig"
+          KID=$(printf '%s' "$ASC_KEY_ID" | tr -d ' \r\n'); IID=$(printf '%s' "$ASC_ISSUER_ID" | tr -d ' \r\n')
+          echo "Key-ID-Länge: ${#KID}, Issuer-ID-Länge: ${#IID}"
+          if [ "$KID" != "$ASC_KEY_ID" ]; then mv ~/private_keys/AuthKey_${ASC_KEY_ID}.p8 ~/private_keys/AuthKey_${KID}.p8; fi
+          echo "KID=$KID" >> "$GITHUB_ENV"
+          echo "IID=$IID" >> "$GITHUB_ENV"
+          echo "KEY_PATH=$HOME/private_keys/AuthKey_${KID}.p8" >> "$GITHUB_ENV"
 
       - name: Archivieren (signiert)
         if: steps.check.outputs.ready == 'true'
@@ -62,8 +78,8 @@ jobs:
             -archivePath build/Alltag.xcarchive \
             -allowProvisioningUpdates \
             -authenticationKeyPath "$KEY_PATH" \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            -authenticationKeyID "$KID" \
+            -authenticationKeyIssuerID "$IID" \
             CURRENT_PROJECT_VERSION=${{ github.run_number }} \
             archive | tee archive.log | grep -E "error:|ARCHIVE" || true
           grep -q "ARCHIVE SUCCEEDED" archive.log
@@ -86,5 +102,5 @@ jobs:
             -exportOptionsPlist ExportOptions.plist -exportPath build/export \
             -allowProvisioningUpdates \
             -authenticationKeyPath "$KEY_PATH" \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+            -authenticationKeyID "$KID" \
+            -authenticationKeyIssuerID "$IID"
