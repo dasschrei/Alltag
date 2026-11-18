@@ -21,6 +21,7 @@ final class AbendCheckService: NSObject, CLLocationManagerDelegate {
         var destination: String
         var transgourmet: Bool
         var travelMinutes: Int
+        var travelNote: String
         var departure: Date
         var wakeUp: Date
     }
@@ -66,13 +67,43 @@ final class AbendCheckService: NSObject, CLLocationManagerDelegate {
         for id in await monitor.identifiers { await monitor.remove(id) }
         await monitor.add(CLMonitor.CircularGeographicCondition(center: home, radius: 150),
                           identifier: "home", assuming: .satisfied)
+        if Places.workCoordinate == nil, let item = await Travel.mapItem(for: Places.work) {
+            Places.workCoordinate = item.placemark.coordinate
+        }
+        if let work = Places.workCoordinate {
+            await monitor.add(CLMonitor.CircularGeographicCondition(center: work, radius: 120),
+                              identifier: "work", assuming: .unsatisfied)
+        }
         Task {
             do {
-                for try await event in await monitor.events where event.state == .satisfied {
-                    await self.arrivedHome()
+                for try await event in await monitor.events {
+                    switch (event.identifier, event.state) {
+                    case ("home", .satisfied): await self.arrivedHome()
+                    case ("home", .unsatisfied): self.leftHome()
+                    case ("work", .satisfied): self.arrivedAtWork()
+                    default: break
+                    }
                 }
             } catch {}
         }
+    }
+
+    /// Lernen: wann Jakob wirklich aus dem Haus geht und wie lange die Fahrt dauert.
+    private func leftHome() {
+        let now = Date.now
+        Habits.leftHomeAt = now
+        if let wake = Habits.plannedWakeUp, now > wake, now.timeIntervalSince(wake) < 3 * 3600 {
+            Habits.recordGetReady(Int(now.timeIntervalSince(wake) / 60))
+            Habits.plannedWakeUp = nil
+        }
+    }
+
+    private func arrivedAtWork() {
+        guard let left = Habits.leftHomeAt else { return }
+        let minutes = Int(Date.now.timeIntervalSince(left) / 60)
+        Habits.leftHomeAt = nil
+        // Mit Einkauf bei Transgourmet zählt die Fahrt nicht als normale Fahrzeit.
+        if minutes <= 60 { Habits.recordDrive(minutes) }
     }
 
     private func arrivedHome() async {
@@ -107,21 +138,31 @@ final class AbendCheckService: NSObject, CLLocationManagerDelegate {
     func calculate(arrival: Date, destination: String, transgourmet: Bool) async -> Plan {
         let home = Travel.homeItem()
         var travel = 25 // Annahme, falls Karten nicht erreichbar
+        var note = "geschätzt"
         if let dest = await Travel.mapItem(for: destination) {
             if transgourmet, let shop = await Travel.mapItem(for: Places.transgourmet) {
                 let shopArrival = arrival.addingTimeInterval(-Double(Places.shoppingMinutes + 20) * 60)
                 let a = await Travel.minutes(from: home, to: shop, arrival: shopArrival) ?? 15
                 let b = await Travel.minutes(from: shop, to: dest, arrival: arrival) ?? 15
                 travel = a + b
+                note = "laut Karten, über Transgourmet"
             } else if let t = await Travel.minutes(from: home, to: dest, arrival: arrival) {
                 travel = t
+                note = "laut Karten mit Verkehr"
             }
+        }
+        // Erfahrung zählt: in die Arbeit nehmen wir die längere von Karten und echter Fahrzeit.
+        if !transgourmet, destination == Places.work, let learned = Habits.typicalDrive {
+            note = learned > travel
+                ? "aus deinen letzten Fahrten (Karten sagt \(travel))"
+                : "laut Karten mit Verkehr (du brauchst sonst \(learned))"
+            travel = max(travel, learned)
         }
         let total = travel + Places.bufferMinutes + (transgourmet ? Places.shoppingMinutes : 0)
         let departure = arrival.addingTimeInterval(-Double(total) * 60)
         let wake = departure.addingTimeInterval(-Double(Places.getReadyMinutes) * 60)
         return Plan(arrival: arrival, destination: destination, transgourmet: transgourmet,
-                    travelMinutes: travel, departure: departure, wakeUp: wake)
+                    travelMinutes: travel, travelNote: note, departure: departure, wakeUp: wake)
     }
 
     // MARK: Umsetzen
@@ -134,6 +175,7 @@ final class AbendCheckService: NSObject, CLLocationManagerDelegate {
         } else {
             parts.append("Wecker konnte nicht gestellt werden")
         }
+        Habits.plannedWakeUp = plan.wakeUp
         await scheduleReminders(for: plan)
         parts.append("los um \(plan.departure.formatted(date: .omitted, time: .shortened))")
         return parts.joined(separator: ", ") + "."

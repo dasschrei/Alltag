@@ -38,8 +38,17 @@ struct AbendCheckView: View {
                         row("Losfahren", plan.departure, "car")
                         if plan.transgourmet { Label("Transgourmet, 30 Min einkaufen", systemImage: "cart") }
                         row("Ankunft \(destinationTitle)", plan.arrival, "mappin.and.ellipse")
-                        Text("Fahrt \(plan.travelMinutes) Min, 10 Min Puffer, 60 Min bis zur Tür.")
+                        Text("Fahrt \(plan.travelMinutes) Min (\(plan.travelNote)), \(Places.bufferMinutes) Min Puffer, \(Places.getReadyMinutes) Min bis zur Tür.")
                             .font(.caption).foregroundStyle(.secondary)
+                    }
+                    if let learned = Habits.typicalGetReady, abs(learned - Places.getReadyMinutes) >= 10 {
+                        Section("Vorschlag") {
+                            Text("Vom Wecker bis zur Tür brauchst du meistens \(learned) Min, eingestellt sind \(Places.getReadyMinutes).")
+                            Button("Auf \(learned) Min ändern") {
+                                Places.getReadyMinutes = learned
+                                Task { await calculate() }
+                            }
+                        }
                     }
                 }
 
