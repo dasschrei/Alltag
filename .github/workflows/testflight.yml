@@ -107,7 +107,7 @@ jobs:
           set -o pipefail
           xcodegen generate
           # Apples Anmeldung für Xcode ist manchmal wackelig: bis zu 3 Versuche.
-          for i in 1 2 3; do
+          for i in 1 2; do
             echo "Versuch $i"
             xcodebuild -project Alltag.xcodeproj -scheme Alltag \
             -destination 'generic/platform=iOS' -configuration Release \
@@ -116,9 +116,11 @@ jobs:
             -authenticationKeyPath "$KEY_PATH" \
             -authenticationKeyID "$KID" \
             -authenticationKeyIssuerID "$IID" \
+            -verbose \
             CURRENT_PROJECT_VERSION=${{ github.run_number }} \
             archive > archive.log 2>&1 || true
             grep -E "error:|ARCHIVE" archive.log | sort -u || true
+            grep -iE "401|403|unauthor|forbidden|token|DVTServices|provisioning|account" archive.log | grep -v "^    " | sort -u | head -40 || true
             if grep -q "ARCHIVE SUCCEEDED" archive.log; then break; fi
             sleep 20
           done
