@@ -16,6 +16,11 @@ targets:
     platform: iOS
     sources:
       - path: Alltag
+    info:
+      path: Alltag/Info.plist
+      properties:
+        NSAlarmKitUsageDescription: "Alltag stellt deinen Wecker passend zur Losgeh-Zeit."
+        UIBackgroundModes: [location]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: at.dasschrei.alltag

@@ -3,6 +3,8 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var key = KeychainStore.get("anthropic_api_key") ?? ""
+    @State private var homeSaved = Places.home != nil
+    @State private var savingHome = false
 
     var body: some View {
         NavigationStack {
@@ -15,6 +17,20 @@ struct SettingsView: View {
                     Text("Claude-Schlüssel")
                 } footer: {
                     Text("Den Schlüssel bekommst du auf console.anthropic.com. Er bleibt sicher im Schlüsselbund dieses iPhones.")
+                }
+                Section {
+                    Button {
+                        Task { savingHome = true; homeSaved = await AbendCheckService.shared.setHomeHere(); savingHome = false }
+                    } label: {
+                        HStack {
+                            Label(homeSaved ? "Zuhause gespeichert" : "Ich bin gerade zu Hause", systemImage: "house")
+                            if savingHome { Spacer(); ProgressView() }
+                        }
+                    }
+                } header: {
+                    Text("Abend-Check")
+                } footer: {
+                    Text("5 Minuten nachdem du heimkommst, fragt die App nach morgen. Bitte Standort „Immer“ erlauben.")
                 }
                 Section("Kalender") {
                     Label(CalendarService.shared.authorized ? "Verbunden" : "Kein Zugriff",

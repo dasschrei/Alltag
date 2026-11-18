@@ -47,6 +47,9 @@ struct RootView: View {
             AssistantView()
                 .presentationDetents([.large])
         }
+        .sheet(isPresented: $appState.showAbendCheck) {
+            AbendCheckView()
+        }
         .sheet(isPresented: $showSettings) {
             SettingsView()
         }

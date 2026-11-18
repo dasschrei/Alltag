@@ -63,6 +63,8 @@ struct HeuteView: View {
         }
         .navigationTitle("Heute")
         .toolbar {
+            Button { AppState.shared.showAbendCheck = true } label: { Image(systemName: "moon.stars") }
+                .accessibilityLabel("Abend-Check")
             Button { showSettings = true } label: { Image(systemName: "gearshape") }
         }
     }
