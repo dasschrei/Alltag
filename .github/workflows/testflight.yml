@@ -7,7 +7,7 @@ on:
     inputs:
       runner:
         description: GitHub-Rechner
-        default: macos-15
+        default: macos-15-intel
   push:
     branches: [main]
 
@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   testflight:
-    runs-on: ${{ github.event.inputs.runner || 'macos-15' }}
+    runs-on: ${{ github.event.inputs.runner || 'macos-15-intel' }}
     timeout-minutes: 45
     env:
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
