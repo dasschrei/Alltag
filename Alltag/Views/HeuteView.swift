@@ -6,7 +6,6 @@ struct HeuteView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.openURL) private var openURL
     @Query(filter: #Predicate<TaskItem> { !$0.done }, sort: \TaskItem.created) private var tasks: [TaskItem]
-    @Query(filter: #Predicate<ReplyItem> { !$0.done }, sort: \ReplyItem.received) private var replies: [ReplyItem]
     @State private var showMiniStep = false
     private let calendar = CalendarService.shared
 
@@ -87,19 +86,7 @@ struct HeuteView: View {
     private var nextStepCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("JETZT ALS NÄCHSTES").font(.caption.weight(.semibold)).opacity(0.75)
-            if let reply = replies.first, !reply.draft.isEmpty {
-                Text("\(reply.person) antworten").font(.title.weight(.heavy))
-                Text(reply.draft).padding(10).frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
-                HStack {
-                    Button(reply.isWhatsApp ? "In WhatsApp senden" : "Mail senden") {
-                        if let url = Sender.url(for: reply) { openURL(url) }
-                        reply.done = true
-                        try? context.save()
-                    }
-                    .buttonStyle(.borderedProminent).tint(Theme.accent).foregroundStyle(.black)
-                }
-            } else if let task = tasks.first {
+            if let task = tasks.first {
                 Text(task.title).font(.title.weight(.heavy))
                 if task.snoozeCount > 1 {
                     Text("Schon \(task.snoozeCount)× verschoben. Fang einfach klein an.").opacity(0.85)

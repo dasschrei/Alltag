@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 import AVFoundation
 
-/// Sprachassistent: zuhören, Claude versteht, alles wird abgelegt. Nur Senden braucht einen Tipp.
+/// Sprachassistent: zuhören, Apple Intelligence versteht, alles wird abgelegt. Kostenlos und offline.
 struct AssistantView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
@@ -11,7 +11,6 @@ struct AssistantView: View {
     @State private var typed = ""
     @State private var working = false
     @State private var reply: String?
-    @State private var drafts: [ReplyItem] = []
     @State private var synthesizer = AVSpeechSynthesizer()
 
     var body: some View {
@@ -48,26 +47,6 @@ struct AssistantView: View {
                         .padding(.horizontal)
                 }
 
-                ForEach(drafts) { draft in
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("An \(draft.person)").font(.subheadline.weight(.semibold))
-                        Text(draft.draft)
-                        Button {
-                            if let url = Sender.url(for: draft) { openURL(url) }
-                            draft.done = true
-                            try? context.save()
-                            drafts.removeAll { $0.id == draft.id }
-                        } label: {
-                            Label("Senden", systemImage: "paperplane.fill").frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(draft.isWhatsApp ? Theme.whatsapp : Theme.deep)
-                    }
-                    .padding()
-                    .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
-                    .padding(.horizontal)
-                }
-
                 Spacer()
 
                 HStack {
@@ -96,7 +75,7 @@ struct AssistantView: View {
 
     private func toggle() {
         if speech.isListening { speech.stop() }
-        else { reply = nil; drafts = []; speech.start() }
+        else { reply = nil; speech.start() }
     }
 
     private func submit(_ text: String, source: String) {
@@ -107,7 +86,6 @@ struct AssistantView: View {
         Task {
             let outcome = await CommandProcessor.handle(text, source: source, in: context)
             reply = outcome.reply
-            drafts = outcome.draftsToSend
             working = false
             speak(outcome.reply)
         }

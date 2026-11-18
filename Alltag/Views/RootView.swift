@@ -3,7 +3,6 @@ import SwiftData
 
 struct RootView: View {
     @Environment(AppState.self) private var appState
-    @Query(filter: #Predicate<ReplyItem> { !$0.done }) private var openReplies: [ReplyItem]
     @State private var showSettings = false
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.modelContext) private var context
@@ -18,10 +17,6 @@ struct RootView: View {
                 NavigationStack { KalenderView() }
                     .tabItem { Label("Kalender", systemImage: "calendar") }
                     .tag(AppTab.kalender)
-                NavigationStack { AntwortenView() }
-                    .tabItem { Label("Antworten", systemImage: "bubble.left.and.bubble.right") }
-                    .badge(openReplies.count)
-                    .tag(AppTab.antworten)
                 NavigationStack { ProjekteView() }
                     .tabItem { Label("Projekte", systemImage: "lightbulb") }
                     .tag(AppTab.projekte)
@@ -62,14 +57,13 @@ struct RootView: View {
             await CalendarService.shared.requestAccess()
             await BirthdayService.shared.refresh(context: context)
             await processShared()
-            if KeychainStore.get("anthropic_api_key") == nil { showSettings = true }
         }
     }
 
-    /// Aus WhatsApp geteilte Nachrichten: Claude macht daraus offene Antworten mit Entwurf.
+    /// Geteilte Texte (z. B. Pocket-Transkripte) werden wie ein Diktat einsortiert.
     private func processShared() async {
         for text in SharedInbox.takeAll() {
-            _ = await CommandProcessor.handle("Geteilte Nachricht: \(text)", source: "Geteilt", incoming: text, in: context)
+            _ = await CommandProcessor.handle(text, source: "Geteilt", in: context)
         }
     }
 }

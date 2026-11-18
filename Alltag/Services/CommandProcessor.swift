@@ -1,106 +1,76 @@
 import Foundation
 import SwiftData
 
-/// Nimmt ein Diktat, lässt Claude es verstehen und legt alles an der richtigen Stelle ab.
+/// Nimmt ein Diktat, lässt Apple Intelligence es verstehen und legt alles an der richtigen Stelle ab.
 @MainActor
 enum CommandProcessor {
 
     struct Outcome {
         var reply: String
-        var draftsToSend: [ReplyItem]
     }
 
-    static func handle(_ text: String, source: String, incoming: String = "", in context: ModelContext) async -> Outcome {
+    static func handle(_ text: String, source: String, in context: ModelContext) async -> Outcome {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return Outcome(reply: "Ich habe nichts verstanden.", draftsToSend: []) }
+        guard !trimmed.isEmpty else { return Outcome(reply: "Ich habe nichts verstanden.") }
 
         let calendar = CalendarService.shared
         let projects = (try? context.fetch(FetchDescriptor<Project>())) ?? []
-        let openReplies = ((try? context.fetch(FetchDescriptor<ReplyItem>())) ?? []).filter { !$0.done }
         let openTasks = ((try? context.fetch(FetchDescriptor<TaskItem>())) ?? []).filter { !$0.done }
         let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: .now) ?? .now
 
-        let ctx = AssistantContext(
+        let ctx = BrainContext(
             now: .now,
             projectNames: projects.map { "\($0.name) (\($0.area.rawValue))" },
-            openReplies: openReplies.map { "\($0.person) über \($0.channel), seit \($0.received.formatted(.relative(presentation: .named)))" },
-            openTasks: openTasks.map { $0.title },
+            openTasks: openTasks.prefix(15).map { $0.title },
             todaysEvents: calendar.summary(for: .now),
             tomorrowsEvents: calendar.summary(for: tomorrow)
         )
 
-        let interpretation: Interpretation
+        let result: LocalInterpretation
         do {
-            interpretation = try await ClaudeService.shared.interpret(trimmed, context: ctx)
+            result = try await LocalBrain.interpret(trimmed, context: ctx)
         } catch {
             // Nichts geht verloren: das Diktat landet als Idee auf dem Parkplatz.
             context.insert(Idea(text: trimmed, area: .privat))
-            context.insert(InboxEntry(text: trimmed, source: source, answer: "Offline gespeichert"))
+            context.insert(InboxEntry(text: trimmed, source: source, answer: "Auf den Parkplatz gelegt"))
             try? context.save()
-            let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            return Outcome(reply: "Notiert, aber noch nicht sortiert. \(message)", draftsToSend: [])
+            let message = (error as? LocalizedError)?.errorDescription ?? "Konnte es nicht sortieren."
+            return Outcome(reply: "Notiert, liegt auf dem Ideen-Parkplatz. \(message)")
         }
 
-        var drafts: [ReplyItem] = []
         var knownProjects = projects
+        var answer = result.reply
 
-        for action in interpretation.actions {
-            let area = Area(rawValue: action.area) ?? .privat
-            switch action.type {
-            case "task":
-                context.insert(TaskItem(title: action.title, area: area, steps: action.steps))
-            case "event":
-                if let start = parseDate(action.start) {
-                    calendar.addEvent(title: action.title, start: start, minutes: action.durationMinutes)
+        for action in result.actions {
+            let area: Area = action.area == .arbeit ? .arbeit : .privat
+            let title = action.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !title.isEmpty || action.kind == .frage else { continue }
+            switch action.kind {
+            case .aufgabe:
+                context.insert(TaskItem(title: title, area: area, steps: action.steps))
+            case .termin:
+                if let start = LocalBrain.detectDate(in: trimmed), calendar.addEvent(title: title, start: start,
+                                                                                    minutes: action.durationMinutes > 0 ? action.durationMinutes : 60) {
+                    answer = "Termin eingetragen: \(start.formatted(.dateTime.weekday(.wide).day().month().hour().minute()))."
                 } else {
-                    context.insert(TaskItem(title: action.title, area: area))
+                    context.insert(TaskItem(title: title, area: area, due: LocalBrain.detectDate(in: trimmed)))
                 }
-            case "reply_draft":
-                let item = ReplyItem(person: action.person, channel: action.channel.isEmpty ? "WhatsApp" : action.channel,
-                                     incoming: incoming, draft: action.message)
-                context.insert(item)
-                drafts.append(item)
-            case "new_project":
-                if !knownProjects.contains(where: { $0.name.caseInsensitiveCompare(action.title) == .orderedSame }) {
-                    let project = Project(name: action.title, area: area)
+            case .neuesProjekt:
+                if !knownProjects.contains(where: { $0.name.caseInsensitiveCompare(title) == .orderedSame }) {
+                    let project = Project(name: title, area: area)
                     context.insert(project)
                     knownProjects.append(project)
                 }
-            case "idea":
-                let project = knownProjects.first { $0.name.caseInsensitiveCompare(action.projectName) == .orderedSame }
-                context.insert(Idea(text: action.title, area: project?.area ?? area, project: project))
-            default:
+            case .idee:
+                let project = knownProjects.first { !action.projectName.isEmpty && $0.name.localizedCaseInsensitiveContains(action.projectName) }
+                context.insert(Idea(text: title, area: project?.area ?? area, project: project))
+            case .frage:
                 break
             }
         }
 
-        context.insert(InboxEntry(text: trimmed, source: source, answer: interpretation.reply))
+        context.insert(InboxEntry(text: trimmed, source: source, answer: answer))
         try? context.save()
-        return Outcome(reply: interpretation.reply, draftsToSend: drafts.filter { !$0.draft.isEmpty })
-    }
-
-    private static func parseDate(_ string: String) -> Date? {
-        guard !string.isEmpty else { return nil }
-        let full = ISO8601DateFormatter()
-        if let d = full.date(from: string) { return d }
-        let noZone = DateFormatter()
-        noZone.locale = Locale(identifier: "en_US_POSIX")
-        noZone.timeZone = TimeZone(identifier: "Europe/Vienna")
-        for format in ["yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd'T'HH:mm", "yyyy-MM-dd"] {
-            noZone.dateFormat = format
-            if let d = noZone.date(from: string) { return d }
-        }
-        return nil
-    }
-}
-
-/// Öffnet WhatsApp oder Mail mit fertigem Text. Gesendet wird erst nach Jakobs Tipp.
-enum Sender {
-    static func url(for reply: ReplyItem) -> URL? {
-        let text = reply.draft.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        if reply.isWhatsApp {
-            return URL(string: "whatsapp://send?text=\(text)")
-        }
-        return URL(string: "mailto:?body=\(text)")
+        return Outcome(reply: answer.isEmpty ? "Notiert." : answer)
     }
 }

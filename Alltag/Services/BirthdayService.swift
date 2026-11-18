@@ -3,7 +3,7 @@ import Contacts
 import SwiftData
 import UserNotifications
 
-/// Geburtstage aus den Kontakten: Erinnerung 3 Tage vorher und am Tag, mit fertigem Glückwunsch.
+/// Geburtstage aus den Kontakten: Erinnerung 3 Tage vorher und am Tag.
 @MainActor
 @Observable
 final class BirthdayService {
@@ -25,7 +25,6 @@ final class BirthdayService {
         let all = await Task.detached { Self.loadBirthdays() }.value
         upcoming = all.filter { $0.daysUntil <= 30 }.sorted { $0.next < $1.next }
         await scheduleNotifications()
-        createGreetingsForToday(context: context)
     }
 
     nonisolated private static func loadBirthdays() -> [Birthday] {
@@ -54,7 +53,7 @@ final class BirthdayService {
         center.removePendingNotificationRequests(withIdentifiers: pending)
         for b in upcoming.prefix(20) {
             for (offset, hour, text) in [(-3, 10, "In 3 Tagen hat \(b.name) Geburtstag."),
-                                         (0, 9, "Heute hat \(b.name) Geburtstag. Der Glückwunsch ist fertig.")] {
+                                         (0, 9, "Heute hat \(b.name) Geburtstag. Gratulieren nicht vergessen!")] {
                 guard let day = Calendar.current.date(byAdding: .day, value: offset, to: b.next),
                       let fire = Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: day),
                       fire > .now else { continue }
@@ -67,17 +66,5 @@ final class BirthdayService {
                                                             trigger: UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)))
             }
         }
-    }
-
-    /// Am Geburtstag liegt der Glückwunsch fertig unter „Antworten“, Senden mit einem Tipp.
-    private func createGreetingsForToday(context: ModelContext) {
-        let existing = (try? context.fetch(FetchDescriptor<ReplyItem>())) ?? []
-        for b in upcoming where b.daysUntil == 0 {
-            let already = existing.contains { $0.person == b.name && Calendar.current.isDateInToday($0.received) }
-            guard !already else { continue }
-            let draft = "Alles Gute zum Geburtstag, \(b.firstName)! 🎉 Ich wünsch dir einen richtig schönen Tag und ein super neues Lebensjahr. Lass dich feiern!"
-            context.insert(ReplyItem(person: b.name, channel: "WhatsApp", incoming: "Geburtstag heute", draft: draft))
-        }
-        try? context.save()
     }
 }

@@ -1,11 +1,10 @@
 # Alltag
 
-Jakobs persönliche iPhone-App: diktieren statt organisieren. Claude sortiert jedes Diktat in Aufgaben, Termine, Antwort-Entwürfe und Projekt-Ideen. Gesendet wird nur nach einem Tipp.
+Jakobs persönliche iPhone-App: diktieren statt organisieren. Apple Intelligence sortiert jedes Diktat kostenlos und offline in Aufgaben, Termine und Projekt-Ideen.
 
 ## Was Version 1 kann
 - **Heute:** ein nächster Schritt, Termine von heute, höchstens drei Aufgaben.
 - **Kalender:** eigene Ansicht, synchron mit dem iPhone-Kalender (iCloud).
-- **Antworten:** offene WhatsApp-/Mail-Antworten mit fertigem Entwurf, Senden mit einem Tipp.
 - **Projekte:** Arbeit und Privat, Ideenlisten, Ideen-Parkplatz.
 - **Eingang:** alles, was diktiert wurde, durchsuchbar.
 - **Assistent:** Mikrofon-Knopf, Aktionstaste („Diktieren“) und Siri („Hey Siri, Alltag merken“).
@@ -13,7 +12,7 @@ Jakobs persönliche iPhone-App: diktieren statt organisieren. Claude sortiert je
 ## Technik
 SwiftUI, SwiftData, EventKit, Speech, App Intents, iOS 26. Das Xcode-Projekt wird mit XcodeGen aus `project.yml` erzeugt. GitHub Actions baut bei jedem Push (`.github/workflows/build.yml`), ein Mac ist nicht nötig.
 
-Der Claude-Schlüssel wird in der App unter Einstellungen eingetragen und im Schlüsselbund gespeichert.
+Kein API-Schlüssel nötig: Spracherkennung und Sortieren laufen auf dem iPhone (Apple Intelligence muss eingeschaltet sein).
 
 ## Als Nächstes
 Abend-Check (Standort, Fahrzeit, Wecker), Teilen aus WhatsApp, Geburtstage, Countdown bis Losgehen, TestFlight.

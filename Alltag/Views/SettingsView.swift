@@ -2,21 +2,14 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var key = KeychainStore.get("anthropic_api_key") ?? ""
     @State private var homeSaved = Places.home != nil
     @State private var savingHome = false
 
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    SecureField("sk-ant-…", text: $key)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                } header: {
-                    Text("Claude-Schlüssel")
-                } footer: {
-                    Text("Den Schlüssel bekommst du auf console.anthropic.com. Er bleibt sicher im Schlüsselbund dieses iPhones.")
+                Section("Sprachassistent") {
+                    Label(LocalBrain.availabilityText, systemImage: "apple.intelligence")
                 }
                 Section {
                     Button {
@@ -40,11 +33,7 @@ struct SettingsView: View {
             .navigationTitle("Einstellungen")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Fertig") {
-                        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if !trimmed.isEmpty { KeychainStore.set(trimmed, for: "anthropic_api_key") }
-                        dismiss()
-                    }
+                    Button("Fertig") { dismiss() }
                 }
             }
         }

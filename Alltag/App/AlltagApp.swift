@@ -38,7 +38,7 @@ final class AppState {
 }
 
 enum AppTab: Hashable {
-    case heute, kalender, antworten, projekte, eingang
+    case heute, kalender, projekte, eingang
 }
 
 /// Startet die Heimkommen-Beobachtung und öffnet den Abend-Check, wenn Jakob auf die Mitteilung tippt.
