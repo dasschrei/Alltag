@@ -27,9 +27,7 @@ struct AbendCheckView: View {
                         Text("Wann willst du morgen in der Arbeit sein?").foregroundStyle(.secondary)
                     }
                     DatePicker("Ankunft", selection: $arrival, displayedComponents: .hourAndMinute)
-                    if Places.asksTransgourmet() {
-                        Toggle("Morgen zu Transgourmet?", isOn: $transgourmet)
-                    }
+                    Toggle("Vorher zu Transgourmet einkaufen?", isOn: $transgourmet)
                 }
 
                 if let plan {
@@ -86,6 +84,8 @@ struct AbendCheckView: View {
     }
 
     private func prefill() {
+        // Montag und Mittwoch ist meistens Einkauf: Sonntag- und Dienstagabend schon vorausgewählt.
+        transgourmet = Places.asksTransgourmet()
         if let first = service.tomorrowFirstEvent() {
             arrival = first.start
             destinationTitle = first.title
