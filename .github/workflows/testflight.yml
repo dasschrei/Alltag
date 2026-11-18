@@ -4,6 +4,10 @@ name: TestFlight
 # Braucht die Secrets ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8 (App Store Connect API, Rolle Admin).
 on:
   workflow_dispatch:
+    inputs:
+      runner:
+        description: GitHub-Rechner
+        default: macos-15
   push:
     branches: [main]
 
@@ -13,7 +17,7 @@ concurrency:
 
 jobs:
   testflight:
-    runs-on: macos-15
+    runs-on: ${{ github.event.inputs.runner || 'macos-15' }}
     timeout-minutes: 45
     env:
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
