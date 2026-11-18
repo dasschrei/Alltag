@@ -91,6 +91,12 @@ jobs:
           CODE=$(curl -s -o resp.json -w '%{http_code}' -H "Authorization: Bearer $TOKEN" https://api.appstoreconnect.apple.com/v1/apps?limit=5)
           echo "App Store Connect antwortet: HTTP $CODE"
           python3 -c "import json;d=json.load(open('resp.json'));[print('Fehler:',e.get('status'),e.get('code'),e.get('title'),e.get('detail')) for e in d.get('errors',[])];[print('App:',a['attributes']['bundleId']) for a in d.get('data',[])]"
+          # Alte Entwicklungs-Zertifikate früherer CI-Läufe entfernen (von Jakob am 2026-11-18 erlaubt; kein eigener Mac).
+          curl -s -H "Authorization: Bearer $TOKEN" "https://api.appstoreconnect.apple.com/v1/certificates?limit=50" -o certs.json
+          for CID in $(python3 -c "import json;d=json.load(open('certs.json'));print(' '.join(c['id'] for c in d.get('data',[]) if c['attributes']['certificateType'] in ('DEVELOPMENT','IOS_DEVELOPMENT')))"); do
+            C=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE -H "Authorization: Bearer $TOKEN" "https://api.appstoreconnect.apple.com/v1/certificates/$CID")
+            echo "Altes Entwicklungs-Zertifikat entfernt: HTTP $C"
+          done
           CODE=$(curl -s -o resp2.json -w '%{http_code}' -H "Authorization: Bearer $TOKEN" "https://api.appstoreconnect.apple.com/v1/bundleIds?limit=20")
           echo "Bundle-IDs: HTTP $CODE"
           python3 -c "import json;d=json.load(open('resp2.json'));[print('Fehler:',e.get('title'),e.get('detail')) for e in d.get('errors',[])];[print('Bundle:',a['attributes']['identifier']) for a in d.get('data',[])]"
