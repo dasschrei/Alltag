@@ -41,6 +41,10 @@ enum ClaudeError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingKey: return "Bitte zuerst in den Einstellungen den Claude-Schlüssel eintragen."
+        case .http(401, _): return "Der Claude-Schlüssel stimmt nicht. Bitte unter Einstellungen (Zahnrad) neu einfügen."
+        case .http(402, _), .http(403, _): return "Claude ist gesperrt, meist fehlt Guthaben unter console.anthropic.com → Billing."
+        case .http(429, _): return "Claude ist gerade ausgelastet. Ich sortiere es später."
+        case .http(let code, let body) where code >= 500: return "Claude ist kurz nicht erreichbar (\(code)). \(body.prefix(0))Ich sortiere es später."
         case .http(let code, let body): return "Claude antwortet mit Fehler \(code): \(body.prefix(200))"
         case .refused: return "Claude hat diese Anfrage abgelehnt."
         case .badResponse: return "Die Antwort von Claude war nicht lesbar."
