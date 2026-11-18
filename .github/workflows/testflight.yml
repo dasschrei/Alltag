@@ -106,17 +106,13 @@ jobs:
         run: |
           set -o pipefail
           xcodegen generate
-          # Apples Anmeldung für Xcode ist manchmal wackelig: bis zu 3 Versuche.
+          # Unsigniert archivieren; signiert wird beim Export mit Apples Cloud-Zertifikat (kein Testgerät nötig).
           for i in 1 2; do
             echo "Versuch $i"
             xcodebuild -project Alltag.xcodeproj -scheme Alltag \
             -destination 'generic/platform=iOS' -configuration Release \
             -archivePath build/Alltag.xcarchive \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$KEY_PATH" \
-            -authenticationKeyID "$KID" \
-            -authenticationKeyIssuerID "$IID" \
-            -verbose \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             CURRENT_PROJECT_VERSION=${{ github.run_number }} \
             archive > archive.log 2>&1 || true
             grep -E "error:|ARCHIVE" archive.log | sort -u || true
