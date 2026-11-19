@@ -4,12 +4,34 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var voiceOn = VoiceService.enabled
     @State private var voiceID = VoiceService.currentVoice?.identifier ?? ""
+    @Environment(\.modelContext) private var context
+    @State private var notionToken = KeychainStore.get(NotionInbox.tokenKey) ?? ""
+    @State private var notionDB = NotionInbox.databaseID
+    @State private var notionStatus = NotionInbox.lastResult
+    @State private var syncing = false
     @State private var homeSaved = Places.home != nil
     @State private var savingHome = false
 
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    SecureField("Notion-Schlüssel (ntn_…)", text: $notionToken)
+                        .textInputAutocapitalization(.never).autocorrectionDisabled()
+                    TextField("Link oder ID der Tabelle", text: $notionDB)
+                        .textInputAutocapitalization(.never).autocorrectionDisabled()
+                    Button {
+                        saveNotion()
+                        Task { syncing = true; await NotionInbox.sync(context: context); notionStatus = NotionInbox.lastResult; syncing = false }
+                    } label: {
+                        HStack { Text("Jetzt abholen"); if syncing { Spacer(); ProgressView() } }
+                    }
+                    if !notionStatus.isEmpty { Text(notionStatus).font(.footnote).foregroundStyle(.secondary) }
+                } header: {
+                    Text("Pocket über Claude (Notion)")
+                } footer: {
+                    Text("Claude sortiert deine Pocket-Aufnahmen in eine Notion-Tabelle. Die App holt sie bei jedem Öffnen ab.")
+                }
                 Section("Sprachassistent") {
                     Label(LocalBrain.availabilityText, systemImage: "apple.intelligence")
                 }
@@ -57,9 +79,16 @@ struct SettingsView: View {
             .navigationTitle("Einstellungen")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Fertig") { dismiss() }
+                    Button("Fertig") { saveNotion(); dismiss() }
                 }
             }
         }
+    }
+
+    private func saveNotion() {
+        let t = notionToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !t.isEmpty { KeychainStore.set(t, for: NotionInbox.tokenKey) }
+        NotionInbox.databaseID = notionDB
+        notionDB = NotionInbox.databaseID
     }
 }
