@@ -32,7 +32,7 @@ struct LocalAction {
 struct LocalInterpretation {
     @Guide(description: "Kurze Antwort zum Vorlesen, auf Deutsch in Du-Form. Bei Notizen nur 'Notiert.'")
     var reply: String
-    @Guide(description: "Alle Aktionen aus dem Diktat", .maximumCount(5))
+    @Guide(description: "Alle Aktionen aus dem Diktat", .maximumCount(8))
     var actions: [LocalAction]
 }
 
@@ -69,7 +69,9 @@ enum LocalBrain {
             throw BrainError.unavailable(availabilityText)
         }
         let session = LanguageModelSession(instructions: instructions)
-        let response = try await session.respond(to: prompt(text, c), generating: LocalInterpretation.self)
+        // Das Modell auf dem iPhone hat ein kleines Gedächtnis: lange Pocket-Mails werden gekürzt
+        // (Signaturen, Links und Wiederholungen weg). Der volle Text bleibt im Eingang gespeichert.
+        let response = try await session.respond(to: prompt(compact(text), c), generating: LocalInterpretation.self)
         return response.content
     }
 
@@ -95,6 +97,18 @@ enum LocalBrain {
 
         Diktat: \(text)
         """
+    }
+
+    static func compact(_ text: String) -> String {
+        var lines: [String] = []
+        for raw in text.components(separatedBy: .newlines) {
+            let line = raw.trimmingCharacters(in: .whitespaces)
+            if line.isEmpty || line.hasPrefix("http") || line.lowercased().contains("unsubscribe")
+                || line.lowercased().contains("abmelden") || lines.last == line { continue }
+            lines.append(line)
+        }
+        let joined = lines.joined(separator: "\n")
+        return joined.count > 2500 ? String(joined.prefix(2500)) : joined
     }
 
     /// Datum und Uhrzeit zuverlässig aus dem Originaltext lesen (Apples Datumserkennung, ebenfalls kostenlos).
