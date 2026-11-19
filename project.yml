@@ -38,4 +38,5 @@ targets:
         INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "Alltag wandelt dein Diktat in Text um."
         INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "Alltag berechnet Fahrzeiten zu deinen Terminen."
         INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription: "Alltag startet den Abend-Check, wenn du nach Hause kommst."
+        INFOPLIST_KEY_NSRemindersFullAccessUsageDescription: "Alltag übernimmt Aufgaben aus Apple Erinnerungen, z. B. die von Pocket."
         INFOPLIST_KEY_NSContactsUsageDescription: "Alltag liest Geburtstage aus deinen Kontakten."

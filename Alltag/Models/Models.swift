@@ -16,6 +16,8 @@ final class TaskItem {
     var steps: [String]
     var created: Date
     var due: Date?
+    /// Verknüpfte Apple-Erinnerung (z. B. von Pocket angelegt).
+    var reminderID: String? = nil
 
     init(title: String, area: Area, steps: [String] = [], due: Date? = nil) {
         self.title = title

@@ -51,12 +51,13 @@ struct RootView: View {
             SettingsView()
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { Task { await processShared() } }
+            if phase == .active { Task { await processShared(); await ReminderSync.shared.sync(context: context) } }
         }
         .task {
             await CalendarService.shared.requestAccess()
             await BirthdayService.shared.refresh(context: context)
             await processShared()
+            await ReminderSync.shared.sync(context: context)
         }
     }
 
