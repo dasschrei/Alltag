@@ -95,8 +95,9 @@ struct KalenderView: View {
         let days = daysInGrid()
         let busy = Set(monthEvents.flatMap { ev -> [Date] in
             var out: [Date] = []
-            var d = cal.startOfDay(for: ev.startDate)
-            let end = ev.endDate ?? ev.startDate
+            let begin: Date = ev.startDate ?? .now
+            var d = cal.startOfDay(for: begin)
+            let end: Date = ev.endDate ?? begin
             while d < end || out.isEmpty { out.append(d); d = cal.date(byAdding: .day, value: 1, to: d)!; if out.count > 31 { break } }
             return out
         })
